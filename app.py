@@ -3,27 +3,27 @@ from xai_sdk import Client
 import io
 from PIL import Image
 
-# --- KONFIGURASI HALAMAN ---
+# --- 1. KONFIGURASI HALAMAN (Optimasi Mobile) ---
 st.set_page_config(
     page_title="Affiliate Studio Pro",
     page_icon="🎬",
-    layout="centered", # Sangat pas untuk tampilan HP
+    layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# --- SISTEM KEAMANAN & PASSWORD ---
-# Silakan ganti password ini sesuai keinginan Mas Miftah
-PASSWORD_APLIKASI = "cuanfisik2026" 
+# --- 2. SISTEM KEAMANAN (Password Akses) ---
+# Silakan ganti password di bawah ini sesuai keinginan Mas Miftah
+PASSWORD_AKSES = "cuanfisik2026"
 
 def check_auth():
     if "authenticated" not in st.session_state:
         st.session_state["authenticated"] = False
     
     if not st.session_state["authenticated"]:
-        st.markdown("<h2 style='text-align: center;'>🔐 Studio Affiliate</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center;'>🔐 Private Studio Affiliate</h2>", unsafe_allow_html=True)
         pwd = st.text_input("Masukkan Password Akses:", type="password")
-        if st.button("Masuk Aplikasi", use_container_width=True):
-            if pwd == PASSWORD_APLIKASI:
+        if st.button("Buka Studio 🚀", use_container_width=True):
+            if pwd == PASSWORD_AKSES:
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:
@@ -31,125 +31,118 @@ def check_auth():
         return False
     return True
 
-# --- FUNGSI UTAMA AI (GROK) ---
+# --- 3. LOGIKA MESIN AI (GROK-3) ---
+def panggil_grok(api_key, mode, image_data, extra_info=""):
+    client = Client(api_key=api_key)
+    
+    if mode == "CLEAN":
+        prompt = "Identifikasi produk utama dalam gambar ini. Hapus latar belakang secara total dan hilangkan semua teks, logo marketplace, watermark harga, atau elemen promosi lainnya yang menempel pada produk. Sisakan hanya objek produk yang bersih dan rapi."
+    elif mode == "STAGING":
+        prompt = f"Letakkan produk ini ke dalam ruangan {extra_info}. Pastikan pencahayaan, bayangan, dan perspektif produk terlihat natural dan menyatu dengan ruangan tersebut. Buat tampilan seperti foto iklan katalog profesional yang estetik."
+    else: # ANIMATE & SCRIPT
+        prompt = f"Animasikan gambar ini dengan gaya {extra_info}. Buat juga skrip konten UGC TikTok yang jujur, bercerita (storytelling), tanpa over-claim, dan fokus pada solusi praktis bagi pembeli. Gunakan bahasa santai (lo-gue atau aku-kamu)."
 
-def ai_process(api_key, task_type, image_data=None, text_data=None):
-    """Fungsi tunggal untuk mengurus semua tugas AI"""
     try:
-        client = Client(api_key=api_key)
-        
-        # 1. PROSES MEMBERSIHKAN GAMBAR
-        if task_type == "CLEAN":
-            chat = client.chat.create(
-                model="grok-3-vision",
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Hapus latar belakang gambar ini dan hilangkan semua tulisan, logo, harga, atau watermark marketplace yang menempel. Sisakan hanya objek produknya saja dengan rapi."},
-                        {"type": "image", "image": image_data}
-                    ]
-                }]
-            )
-            return chat.sample(), "BERHASIL"
-
-        # 2. PROSES GANTI BACKGROUND RUANGAN
-        elif task_type == "STAGING":
-            chat = client.chat.create(
-                model="grok-3-vision",
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": f"Letakkan produk ini ke dalam ruangan {text_data}. Sesuaikan cahaya dan bayangan agar terlihat menyatu secara natural dan estetik seperti iklan profesional."},
-                        {"type": "image", "image": image_data}
-                    ]
-                }]
-            )
-            return chat.sample(), "BERHASIL"
-
-        # 3. PROSES BUAT SKRIP & VIDEO
-        elif task_type == "ANIMATE":
-            chat = client.chat.create(
-                model="grok-3-vision",
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": f"Animasikan gambar ini dengan gerakan {text_data}. Buat skrip storytelling pendek untuk TikTok yang jujur, tanpa over-claim, fokus pada manfaat produk."},
-                        {"type": "image", "image": image_data}
-                    ]
-                }]
-            )
-            return chat.sample(), "BERHASIL"
-
+        chat = client.chat.create(
+            model="grok-3-vision",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image", "image": image_data}
+                ]
+            }]
+        )
+        # Mengambil hasil dari API
+        return chat.sample().content, True
     except Exception as e:
-        return None, str(e)
+        return str(e), False
 
-# --- TAMPILAN APLIKASI ---
+# --- 4. ANTARMUKA UTAMA (UI) ---
 if check_auth():
-    # Sidebar untuk ganti-ganti API Key dengan mudah
+    # SIDEBAR: Manajemen API Key
     with st.sidebar:
         st.header("🔑 Key Manager")
-        api_key_input = st.text_input("Grok API Key Anda:", type="password", placeholder="Paste API Key di sini...")
-        st.info("Mas bisa ganti API Key ini kapan saja jika kuota habis.")
+        
+        # Cek apakah ada API Key di Secrets (Otomatis) atau Input Manual
+        key_rahasia = st.secrets.get("GROK_API_KEY", "")
+        api_key = st.text_input("Grok API Key:", value=key_rahasia, type="password", help="Masukkan API Key Grok Anda di sini.")
+        
+        if not api_key:
+            st.warning("⚠️ Masukkan API Key untuk memulai.")
+        else:
+            st.success("✅ API Key Siap")
+            
         st.divider()
         if st.button("Log Out"):
             st.session_state["authenticated"] = False
             st.rerun()
 
     st.title("🎬 Affiliate Studio Pro")
-    st.write("Ubah Screenshot Marketplace jadi Iklan Keren.")
+    st.write("Ubah screenshot marketplace jadi konten iklan berkelas.")
 
-    # Inisialisasi Storage untuk gambar hasil proses
-    if "img_step1" not in st.session_state: st.session_state.img_step1 = None
-    if "img_step2" not in st.session_state: st.session_state.img_step2 = None
+    # Inisialisasi State Gambar
+    if "img_clean" not in st.session_state: st.session_state.img_clean = None
+    if "img_final" not in st.session_state: st.session_state.img_final = None
 
-    # LANGKAH 1: UPLOAD & CLEANING
-    st.subheader("Langkah 1: Upload Screenshot")
-    file_upload = st.file_uploader("Upload foto dari Galeri/Kamera", type=['jpg', 'png', 'jpeg'])
-    
-    if st.button("✨ Bersihkan Gambar", use_container_width=True):
-        if not api_key_input:
-            st.warning("Masukkan API Key dulu di menu samping!")
-        elif file_upload:
-            with st.spinner("Menghapus watermark & background..."):
-                res, msg = ai_process(api_key_input, "CLEAN", image_data=file_upload.read())
-                if res:
-                    st.session_state.img_step1 = file_upload # Simulasi simpan hasil
-                    st.success("Gambar sudah bersih!")
-                    st.image(file_upload, caption="Preview Produk Bersih", use_column_width=True)
-                else: st.error(msg)
-        else: st.warning("Pilih foto dulu ya.")
+    # LANGKAH 1: CLEANING
+    st.subheader("1. Bersihkan Screenshot")
+    file_kotor = st.file_uploader("Upload hasil screenshot marketplace:", type=['jpg', 'jpeg', 'png'])
 
-    # LANGKAH 2: VIRTUAL STAGING (GANTI RUANGAN)
-    if st.session_state.img_step1:
+    if st.button("✨ Hapus Watermark & Background", use_container_width=True):
+        if not api_key:
+            st.error("Isi API Key di menu samping dulu, Mas!")
+        elif file_kotor:
+            with st.spinner("Grok sedang membersihkan gambar..."):
+                hasil, sukses = panggil_grok(api_key, "CLEAN", file_kotor.read())
+                if sukses:
+                    # Simulasi penyimpanan hasil (Nanti diisi respon gambar dari API)
+                    st.session_state.img_clean = file_kotor 
+                    st.image(file_kotor, caption="Preview Produk Bersih", use_column_width=True)
+                    st.success("Gambar berhasil dibersihkan!")
+                else: st.error(f"Gagal: {hasil}")
+        else: st.warning("Pilih file gambarnya dulu ya.")
+
+    # LANGKAH 2: VIRTUAL STAGING
+    if st.session_state.img_clean:
         st.divider()
-        st.subheader("Langkah 2: Pilih Ruangan Modern")
-        ruangan = st.selectbox("Pilih Suasana:", [
-            "Kamar Tidur Minimalis Modern", 
-            "Ruang Tamu Scandinavian", 
-            "Dapur Putih Bersih", 
-            "Meja Kerja Kayu Estetik"
+        st.subheader("2. Pilih Ruangan Modern")
+        pilihan_ruangan = st.selectbox("Pilih Suasana Ruangan:", [
+            "Kamar Tidur Minimalis Modern",
+            "Ruang Tamu Scandinavian",
+            "Dapur Minimalis Putih",
+            "Meja Kerja Kayu Estetik",
+            "Taman Belakang Asri"
         ])
-        
-        if st.button("🖼️ Pasang di Ruangan", use_container_width=True):
-            with st.spinner(f"Meletakkan produk di {ruangan}..."):
-                # Proses Staging
-                st.session_state.img_step2 = st.session_state.img_step1 # Simulasi
-                st.image(st.session_state.img_step2, caption=f"Produk di {ruangan}", use_column_width=True)
-                st.success("Kelihatan keren banget, Mas!")
 
-    # LANGKAH 3: ANIMASI & SKRIP
-    if st.session_state.img_step2:
+        if st.button("🖼️ Pasang di Ruangan", use_container_width=True):
+            with st.spinner(f"Memindahkan produk ke {pilihan_ruangan}..."):
+                # Konversi image state ke bytes
+                img_bytes = st.session_state.img_clean.getvalue()
+                hasil, sukses = panggil_grok(api_key, "STAGING", img_bytes, pilihan_ruangan)
+                if sukses:
+                    st.session_state.img_final = st.session_state.img_clean # Simulasi
+                    st.image(st.session_state.img_final, caption=f"Produk di {pilihan_ruangan}", use_column_width=True)
+                else: st.error(f"Gagal: {hasil}")
+
+    # LANGKAH 3: VIDEO & SKRIP
+    if st.session_state.img_final:
         st.divider()
-        st.subheader("Langkah 3: Jadi Video & Skrip")
-        gerakan = st.radio("Gaya Gerakan:", ["Zoom In Sinematik", "Panning Lembut", "Rotasi Halus"], horizontal=True)
-        
-        if st.button("🚀 Proses Video Iklan", use_container_width=True):
-            with st.spinner("Grok sedang membuat skrip & video..."):
-                # Proses Akhir
-                st.video("https://www.w3schools.com/html/mov_bbb.mp4") # Contoh tampilan video
-                st.markdown("### 📝 Skrip Storytelling (Aman & Jujur):")
-                st.info("Jujur aku kaget pas liat barang ini. Desainnya modern dan pas banget buat dekorasi ruangan. Pas dicoba fungsinya juga oke, kualitasnya solid bukan kaleng-kaleng. Cek link di bio nomor 12 ya!")
-                st.button("📋 Salin Skrip untuk TikTok", use_container_width=True)
+        st.subheader("3. Hasil Video & Skrip Storytelling")
+        gaya_gerak = st.selectbox("Gaya Gerakan Video:", ["Slow Zoom In Sinematik", "Panning Kiri ke Kanan", "Rotasi Produk Halus"])
+
+        if st.button("🚀 Generate Konten Iklan", use_container_width=True):
+            with st.spinner("Grok sedang merancang skrip dan video..."):
+                img_bytes = st.session_state.img_final.getvalue()
+                hasil_teks, sukses = panggil_grok(api_key, "ANIMATE", img_bytes, gaya_gerak)
+                
+                if sukses:
+                    st.video("https://www.w3schools.com/html/mov_bbb.mp4") # Contoh tampilan video
+                    st.markdown("### ✍️ Skrip UGC (Anti Over-Claim):")
+                    st.info(hasil_teks)
+                    
+                    st.download_button("Salin Skrip ke HP", hasil_teks, file_name="skrip_affiliate.txt", use_container_width=True)
+                else: st.error(f"Gagal: {hasil_teks}")
 
     st.divider()
-    st.caption("Akses: Khusus Mas Miftah | Versi 1.0")
+    st.caption("Aplikasi Studio Affiliate Pro v1.0 | Dibuat khusus untuk Mas Miftah")
